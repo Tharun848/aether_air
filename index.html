@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Urban Air Pollution Monitoring & Intelligence Dashboard</title>
+  <meta name="description" content="Real-time urban air quality index monitoring, pollutant breakdown, AI predictions, and health advisories." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #070d0b;
+      --card-bg: rgba(13, 27, 22, 0.75);
+      --card-border: rgba(46, 117, 89, 0.28);
+      --card-hover-border: rgba(52, 211, 153, 0.5);
+      --text-main: #f0fdf4;
+      --text-muted: #86a798;
+      --text-dim: #547466;
+      --emerald-accent: #10b981;
+      --teal-accent: #14b8a6;
+      --cyan-accent: #06b6d4;
+      --good-color: #10b981;
+      --satisfactory-color: #3b82f6;
+      --moderate-color: #f59e0b;
+      --poor-color: #ef4444;
+      --severe-color: #a855f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at 15% 15%, #0f2920 0%, #070d0b 60%), #070d0b;
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* Ambient background blur blobs */
+    .ambient-glow {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.25;
+    }
+    .glow-1 {
+      top: -100px;
+      left: -50px;
+      width: 450px;
+      height: 450px;
+      background: #10b981;
+    }
+    .glow-2 {
+      bottom: -150px;
+      right: -100px;
+      width: 500px;
+      height: 500px;
+      background: #0ea5e9;
+    }
+
+    /* Header & Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(7, 13, 11, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+    }
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #10b981, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #041f17;
+      font-weight: 800;
+      font-size: 1.2rem;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+    }
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+    .brand-title span {
+      background: linear-gradient(90deg, #34d399, #22d3ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+    }
+    .nav-links a:hover, .nav-links a.active {
+      color: #34d399;
+      background: rgba(52, 211, 153, 0.08);
+    }
+
+    .live-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #34d399;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulseAnimation 2s infinite;
+    }
+    @keyframes pulseAnimation {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Main Container */
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2.5rem 2rem 4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2.5rem;
+    }
+
+    /* Hero Banner */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 1rem;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem 0;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(20, 184, 166, 0.1);
+      border: 1px solid rgba(20, 184, 166, 0.3);
+      padding: 0.35rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #2dd4bf;
+    }
+    .hero h1 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, #34d399 0%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 620px;
+    }
+
+    /* Location Picker Bar */
+    .location-selector-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    }
+    .selector-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .station-select {
+      background: rgba(4, 12, 9, 0.8);
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .station-select:focus {
+      border-color: #34d399;
+      box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2);
+    }
+
+    /* Metric Grid */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(14px);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-card:hover {
+      border-color: var(--card-hover-border);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+    .metric-card h3 {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .val-container {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .metric-value {
+      font-size: 2.25rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.04em;
+    }
+    .metric-unit {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .card-meta {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding-top: 0.6rem;
+    }
+
+    /* Key AQI Spotlight Box */
+    .aqi-spotlight {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.05));
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      border-radius: 20px;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 2rem;
+      align-items: center;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+    @media (max-width: 860px) {
+      .aqi-spotlight { grid-template-columns: 1fr; }
+    }
+    .aqi-number-container {
+      text-align: center;
+      padding: 1.5rem;
+      background: rgba(4, 15, 11, 0.6);
+      border-radius: 16px;
+      border: 1px solid var(--card-border);
+    }
+    .aqi-big-val {
+      font-size: 4.5rem;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
+      margin: 0.5rem 0;
+    }
+    .aqi-cat-tag {
+      display: inline-block;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.4rem 1.2rem;
+      border-radius: 9999px;
+      letter-spacing: 0.02em;
+    }
+    .aqi-details h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .aqi-details p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.25rem;
+    }
+    .aqi-sub-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.75rem;
+    }
+    .aqi-sub-pill {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.75rem;
+      border-radius: 10px;
+    }
+    .aqi-sub-pill span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .aqi-sub-pill strong {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Section Headers */
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 1rem;
+    }
+    .section-head h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .section-head p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    /* Advisory & Health Cards */
+    .advisory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+    .advisory-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .advisory-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+      padding: 0.6rem;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 10px;
+    }
+    .advisory-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .advisory-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 1.5rem 2rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      background: rgba(5, 11, 9, 0.9);
+    }
+    footer a {
+      color: var(--emerald-accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-icon">🍃</div>
+      <div class="brand-title">Urban<span>AirPulse</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#overview" class="active">Overview</a></li>
+      <li><a href="#metrics">Pollutants</a></li>
+      <li><a href="#weather">Weather</a></li>
+      <li><a href="#advisory">Health Advisory</a></li>
+    </ul>
+    <div class="live-status-pill">
+      <div class="pulse-dot"></div>
+      <span>STATION SENSORS ACTIVE</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero" id="overview">
+      <div class="hero-badge">⚡ Real-Time Atmospheric Intelligence</div>
+      <h1>Smart Urban Air Quality <span>Analysis & Forecasting</span></h1>
+      <p>Precision multi-pollutant telemetry, DBSCAN cluster hotspot detection, and Random Forest AQI predictive modeling across municipal monitoring stations.</p>
+    </section>
+
+    <!-- Station Selection Bar -->
+    <div class="location-selector-bar">
+      <div>
+        <div class="selector-label">Monitoring Station Area</div>
+        <div style="font-size: 1.1rem; font-weight: 700;" id="station-heading">Downtown Commercial Hub (Zone A)</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <label for="station-select" class="selector-label" style="margin: 0;">Switch Station:</label>
+        <select id="station-select" class="station-select" onchange="switchStation(this.value)">
+          <option value="0">Zone A - Downtown Commercial Hub</option>
+          <option value="1">Zone B - Industrial Harbour Corridor</option>
+          <option value="2">Zone C - Riverside Residential Park</option>
+          <option value="3">Zone D - Expressway Junction</option>
+          <option value="4">Zone E - Central Tech Campus</option>
+          <option value="5">Zone F - Freight Logistics Hub</option>
+          <option value="6">Zone G - Botanical Hill Reserve</option>
+          <option value="7">Zone H - Midtown Medical District</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- AQI Main Spotlight -->
+    <div class="aqi-spotlight">
+      <div class="aqi-number-container">
+        <span class="selector-label">Air Quality Index (AQI)</span>
+        <div class="aqi-big-val" id="aqi-val" style="color: #3b82f6;">80</div>
+        <div class="aqi-cat-tag" id="aqi-cat-tag" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4);">Satisfactory</div>
+      </div>
+      <div class="aqi-details">
+        <h2 id="aqi-title">Air Quality is Satisfactory</h2>
+        <p id="aqi-desc">Minor breathing discomfort may be experienced by sensitive individuals with existing respiratory conditions.</p>
+        <div class="aqi-sub-grid">
+          <div class="aqi-sub-pill">
+            <span>Dominant Pollutant</span>
+            <strong id="dom-pollutant" style="color: #34d399;">PM2.5</strong>
+          </div>
+          <div class="aqi-sub-pill">
+            <span>Forecast (+3h)</span>
+            <strong id="predicted-aqi" style="color: #38bdf8;">88 AQI</strong>
+          </div>
+          <div class="aqi-sub-pill">
+            <span>Spatial Status</span>
+            <strong id="hotspot-status" style="color: #10b981;">Clean / Isolated</strong>
+          </div>
+          <div class="aqi-sub-pill">
+            <span>Trend Velocity</span>
+            <strong id="trend-val" style="color: #f59e0b;">+1.4 / hr</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pollutant Metrics Grid -->
+    <section id="metrics">
+      <div class="section-head">
+        <div>
+          <h2>Measured Pollutant Concentrations</h2>
+          <p>Continuous sensor telemetry calibrated to statutory air quality standards</p>
+        </div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="card-top">
+            <h3>Particulate Matter 2.5</h3>
+            <span class="badge" id="badge-pm25" style="background: rgba(59,130,246,0.15); color: #60a5fa;">Satisfactory</span>
+          </div>
+          <div class="val-container">
+            <span class="metric-value" id="val-pm25">48.0</span>
+            <span class="metric-unit">µg/m³</span>
+          </div>
+          <div class="card-meta">
+            <span>Fine Inhalable Particles</span>
+            <span>Threshold: 60 µg/m³</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="card-top">
+            <h3>Particulate Matter 10</h3>
+            <span class="badge" id="badge-pm10" style="background: rgba(16,185,129,0.15); color: #34d399;">Good</span>
+          </div>
+          <div class="val-container">
+            <span class="metric-value" id="val-pm10">72.0</span>
+            <span class="metric-unit">µg/m³</span>
+          </div>
+          <div class="card-meta">
+            <span>Coarse Dust & Pollen</span>
+            <span>Threshold: 100 µg/m³</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="card-top">
+            <h3>Nitrogen Dioxide (NO₂)</h3>
+            <span class="badge" id="badge-no2" style="background: rgba(16,185,129,0.15); color: #34d399;">Good</span>
+          </div>
+          <div class="val-container">
+            <span class="metric-value" id="val-no2">34.0</span>
+            <span class="metric-unit">µg/m³</span>
+          </div>
+          <div class="card-meta">
+            <span>Combustion & Traffic</span>
+            <span>Threshold: 80 µg/m³</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="card-top">
+            <h3>Carbon Monoxide (CO)</h3>
+            <span class="badge" id="badge-co" style="background: rgba(16,185,129,0.15); color: #34d399;">Good</span>
+          </div>
+          <div class="val-container">
+            <span class="metric-value" id="val-co">0.9</span>
+            <span class="metric-unit">mg/m³</span>
+          </div>
+          <div class="card-meta">
+            <span>Incomplete Combustion</span>
+            <span>Threshold: 2.0 mg/m³</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Meteorological Context Grid -->
+    <section id="weather">
+      <div class="section-head">
+        <div>
+          <h2>Atmospheric Dispersion Context</h2>
+          <p>Local microclimate variables dictating pollutant stagnation and ventilation</p>
+        </div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="card-top">
+            <h3>Ambient Temperature</h3>
+            <span class="badge" style="background: rgba(56,189,248,0.15); color: #38bdf8;">Optimal</span>
+          </div>
+          <div class="val-container">
+            <span class="metric-value" id="val-temp">23.5</span>
+            <span class="metric-unit">°C</span>
+          </div>
+          <div class="card-meta">
+            <span>Boundary Layer Height</span>
+            <span>Stable inversion</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="card-top">
+            <h3>Relative Humidity</h3>
+            <span class="badge" style="background: rgba(20,184,166,0.15); color: #2dd4bf;">Normal</span>
+          </div>
+          <div class="val-container">
+            <span class="metric-value" id="val-humidity">58</span>
+            <span class="metric-unit">%</span>
+          </div>
+          <div class="card-meta">
+            <span>Hygroscopic Growth</span>
+            <span>Aerosol hydration</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="card-top">
+            <h3>Surface Wind Velocity</h3>
+            <span class="badge" id="badge-wind" style="background: rgba(16,185,129,0.15); color: #34d399;">Brisk</span>
+          </div>
+          <div class="val-container">
+            <span class="metric-value" id="val-wind">12.4</span>
+            <span class="metric-unit">km/h</span>
+          </div>
+          <div class="card-meta">
+            <span>Ventilation Factor</span>
+            <span id="val-direction">180° (South)</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Health Advisory & Precautions -->
+    <section id="advisory">
+      <div class="section-head">
+        <div>
+          <h2>Precautionary Health Guidelines</h2>
+          <p>Actionable guidance based on currently prevailing atmospheric conditions</p>
+        </div>
+      </div>
+      <div class="advisory-grid">
+        <div class="advisory-card">
+          <div class="advisory-icon">🏃</div>
+          <div>
+            <h4>Outdoor Activities</h4>
+            <p id="adv-outdoor">Ideal conditions for jogging and cycling. No restrictions for general public.</p>
+          </div>
+        </div>
+        <div class="advisory-card">
+          <div class="advisory-icon">🪟</div>
+          <div>
+            <h4>Home Ventilation</h4>
+            <p id="adv-ventilation">Natural cross-ventilation encouraged during early morning hours.</p>
+          </div>
+        </div>
+        <div class="advisory-card">
+          <div class="advisory-icon">🛡️</div>
+          <div>
+            <h4>Sensitive Demographics</h4>
+            <p id="adv-sensitive">Children and elderly individuals with asthma should keep rescue inhalers accessible.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>© 2026 Urban Air Pollution Intelligence System • Powered by FastAPI & React • Real-Time Environmental Telemetry</p>
+  </footer>
+
+  <script>
+    const STATIONS = [
+      {
+        name: 'Zone A - Downtown Commercial Hub',
+        pm25: 48.0, pm10: 72.0, co: 0.9, no2: 34.0, aqi: 80, cat: 'Satisfactory',
+        dominant: 'PM2.5', predicted: 88, hotspot: 'Clean / Isolated', trend: '+1.4 / hr',
+        temp: 23.5, humidity: 58, wind: 12.4, dir: '180° (South)',
+        title: 'Air Quality is Satisfactory',
+        desc: 'Minor breathing discomfort may be experienced by sensitive individuals with respiratory allergies.',
+        advOutdoor: 'Outdoor exercise is safe for most individuals. Sensitive groups should monitor exertion.',
+        advVent: 'Open windows during daylight hours to cycle fresh air through living spaces.'
+      },
+      {
+        name: 'Zone B - Industrial Harbour Corridor',
+        pm25: 142.5, pm10: 210.0, co: 2.8, no2: 68.0, aqi: 215, cat: 'Poor',
+        dominant: 'PM2.5', predicted: 238, hotspot: 'Active Hotspot (DBSCAN)', trend: '+6.8 / hr',
+        temp: 25.1, humidity: 78, wind: 4.2, dir: '210° (South-West)',
+        title: 'Air Quality is Poor',
+        desc: 'Breathing discomfort to people on prolonged exposure. Significant particulate haze observed.',
+        advOutdoor: 'Avoid vigorous outdoor exercise. Wear certified N95 masks when commuting.',
+        advVent: 'Keep windows closed. Run HEPA air purification systems indoors.'
+      },
+      {
+        name: 'Zone C - Riverside Residential Park',
+        pm25: 22.0, pm10: 38.0, co: 0.4, no2: 18.0, aqi: 42, cat: 'Good',
+        dominant: 'PM10', predicted: 45, hotspot: 'Clean / Greenbelt', trend: '-0.5 / hr',
+        temp: 22.0, humidity: 62, wind: 15.0, dir: '160° (South-East)',
+        title: 'Air Quality is Good',
+        desc: 'Air quality is considered satisfactory, and air pollution poses little or no risk.',
+        advOutdoor: 'Excellent conditions for outdoor sports, recreation, and open-air gatherings.',
+        advVent: 'Ideal time for complete indoor natural air ventilation.'
+      },
+      {
+        name: 'Zone D - Expressway Junction',
+        pm25: 135.0, pm10: 195.0, co: 2.4, no2: 72.0, aqi: 198, cat: 'Moderate',
+        dominant: 'PM2.5', predicted: 205, hotspot: 'Active Hotspot (DBSCAN)', trend: '+3.2 / hr',
+        temp: 24.8, humidity: 74, wind: 5.1, dir: '200° (South-West)',
+        title: 'Air Quality is Moderate',
+        desc: 'Elevated combustion byproducts near multi-lane traffic corridors.',
+        advOutdoor: 'Limit prolonged outdoor exposure near high-traffic thoroughfares.',
+        advVent: 'Keep roadside windows sealed during peak commuter congestion.'
+      },
+      {
+        name: 'Zone E - Central Tech Campus',
+        pm25: 35.0, pm10: 55.0, co: 0.7, no2: 26.0, aqi: 65, cat: 'Satisfactory',
+        dominant: 'PM10', predicted: 70, hotspot: 'Clean / Isolated', trend: '+0.8 / hr',
+        temp: 23.0, humidity: 60, wind: 10.8, dir: '175° (South)',
+        title: 'Air Quality is Satisfactory',
+        desc: 'Optimal urban climate with clean electrified public transit infrastructure.',
+        advOutdoor: 'Safe for walking and light outdoor recreation across campus greenways.',
+        advVent: 'Standard ventilation acceptable throughout the workday.'
+      },
+      {
+        name: 'Zone F - Freight Logistics Hub',
+        pm25: 155.0, pm10: 228.0, co: 3.1, no2: 75.0, aqi: 225, cat: 'Poor',
+        dominant: 'PM2.5', predicted: 242, hotspot: 'Active Hotspot (DBSCAN)', trend: '+5.4 / hr',
+        temp: 25.4, humidity: 80, wind: 3.8, dir: '215° (South-West)',
+        title: 'Air Quality is Poor',
+        desc: 'Heavy diesel logistics operations combined with atmospheric stagnation.',
+        advOutdoor: 'Workers and pedestrians should minimize unmasked exposure outdoors.',
+        advVent: 'Seal facility doors and activate industrial air scrubbing filtration.'
+      },
+      {
+        name: 'Zone G - Botanical Hill Reserve',
+        pm25: 16.0, pm10: 28.0, co: 0.3, no2: 12.0, aqi: 32, cat: 'Good',
+        dominant: 'PM2.5', predicted: 30, hotspot: 'Ecological Reserve', trend: '-0.2 / hr',
+        temp: 21.2, humidity: 55, wind: 16.5, dir: '150° (South-East)',
+        title: 'Air Quality is Pristine',
+        desc: 'High elevation arboretum with optimal natural atmospheric circulation and clean air.',
+        advOutdoor: 'Unrestricted outdoor endurance training and nature walks.',
+        advVent: 'Maximum fresh air intake recommended.'
+      },
+      {
+        name: 'Zone H - Midtown Medical District',
+        pm25: 52.0, pm10: 82.0, co: 1.1, no2: 38.0, aqi: 88, cat: 'Satisfactory',
+        dominant: 'PM10', predicted: 94, hotspot: 'Clean / Monitored', trend: '+1.1 / hr',
+        temp: 22.8, humidity: 64, wind: 11.2, dir: '170° (South)',
+        title: 'Air Quality is Satisfactory',
+        desc: 'Hospital and campus precinct adhering to targeted clean-air controls.',
+        advOutdoor: 'Generally safe outdoor conditions with regular monitoring.',
+        advVent: 'Hospital-grade HEPA filters maintain optimal indoor sterility.'
+      }
+    ];
+
+    function getCategoryColors(cat) {
+      switch (cat.toLowerCase()) {
+        case 'good':
+          return { bg: 'rgba(16, 185, 129, 0.2)', text: '#34d399', border: 'rgba(16, 185, 129, 0.4)' };
+        case 'satisfactory':
+          return { bg: 'rgba(59, 130, 246, 0.2)', text: '#60a5fa', border: 'rgba(59, 130, 246, 0.4)' };
+        case 'moderate':
+          return { bg: 'rgba(245, 158, 11, 0.2)', text: '#fbbf24', border: 'rgba(245, 158, 11, 0.4)' };
+        case 'poor':
+          return { bg: 'rgba(239, 68, 68, 0.2)', text: '#f87171', border: 'rgba(239, 68, 68, 0.4)' };
+        default:
+          return { bg: 'rgba(168, 85, 247, 0.2)', text: '#c084fc', border: 'rgba(168, 85, 247, 0.4)' };
+      }
+    }
+
+    function switchStation(idx) {
+      const s = STATIONS[idx];
+      const colors = getCategoryColors(s.cat);
+
+      document.getElementById('station-heading').textContent = s.name;
+      document.getElementById('aqi-val').textContent = s.aqi;
+      document.getElementById('aqi-val').style.color = colors.text;
+
+      const aqiTag = document.getElementById('aqi-cat-tag');
+      aqiTag.textContent = s.cat;
+      aqiTag.style.backgroundColor = colors.bg;
+      aqiTag.style.color = colors.text;
+      aqiTag.style.borderColor = colors.border;
+
+      document.getElementById('aqi-title').textContent = s.title;
+      document.getElementById('aqi-desc').textContent = s.desc;
+      document.getElementById('dom-pollutant').textContent = s.dominant;
+      document.getElementById('predicted-aqi').textContent = s.predicted + ' AQI';
+      
+      const hotspotElem = document.getElementById('hotspot-status');
+      hotspotElem.textContent = s.hotspot;
+      hotspotElem.style.color = s.hotspot.includes('Active') ? '#f87171' : '#34d399';
+
+      document.getElementById('trend-val').textContent = s.trend;
+
+      // Pollutant metrics
+      document.getElementById('val-pm25').textContent = s.pm25.toFixed(1);
+      document.getElementById('val-pm10').textContent = s.pm10.toFixed(1);
+      document.getElementById('val-no2').textContent = s.no2.toFixed(1);
+      document.getElementById('val-co').textContent = s.co.toFixed(1);
+
+      // Weather metrics
+      document.getElementById('val-temp').textContent = s.temp.toFixed(1);
+      document.getElementById('val-humidity').textContent = s.humidity;
+      document.getElementById('val-wind').textContent = s.wind.toFixed(1);
+      document.getElementById('val-direction').textContent = s.dir;
+
+      // Health advisories
+      document.getElementById('adv-outdoor').textContent = s.advOutdoor;
+      document.getElementById('adv-ventilation').textContent = s.advVent;
+    }
+  </script>
+</body>
+</html>
